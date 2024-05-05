@@ -16,6 +16,9 @@ import (
 func main() {
 	host := flag.String("host", "127.0.0.1", "host to listen on")
 	port := flag.String("port", "8000", "port to listen on")
+	certfile := flag.String("certfile", "coverdb.crt", "x.509 certificate file")
+	keyfile := flag.String("keyfile", "coverdb.key", "x.509 private key file")
+	https := flag.Bool("https", false, "use https")
 	flag.Parse()
 
 	swagger, err := api.GetSwagger()
@@ -47,6 +50,15 @@ func main() {
 		Handler: r,
 		Addr:    net.JoinHostPort(*host, *port),
 	}
-
-	log.Fatal(s.ListenAndServe())
+	if *https {
+		log.Printf("listening on https://%s:%s\n", *host, *port)
+		err = EnsureTLSFiles(*certfile, *keyfile)
+		if err != nil {
+			panic(err)
+		}
+		log.Fatal(s.ListenAndServeTLS(*certfile, *keyfile))
+	} else {
+		log.Printf("listening on http://%s:%s\n", *host, *port)
+		log.Fatal(s.ListenAndServe())
+	}
 }

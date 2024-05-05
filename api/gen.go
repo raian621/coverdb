@@ -6,6 +6,7 @@ package api
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -18,11 +19,38 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+const (
+	APIKeyAuthScopes = "APIKeyAuth.Scopes"
+	CookieAuthScopes = "CookieAuth.Scopes"
+)
+
 // Defines values for GetCoveragePathParamsFormat.
 const (
 	Raw GetCoveragePathParamsFormat = "raw"
 	Svg GetCoveragePathParamsFormat = "svg"
 )
+
+// APIKey defines model for APIKey.
+type APIKey struct {
+	Id  int    `json:"id"`
+	Key string `json:"key"`
+}
+
+// APIKeyInit defines model for APIKeyInit.
+type APIKeyInit struct {
+	Scopes []string `json:"scopes"`
+}
+
+// APIKeyRef defines model for APIKeyRef.
+type APIKeyRef struct {
+	Id int `json:"id"`
+}
+
+// APIKeyUpdate defines model for APIKeyUpdate.
+type APIKeyUpdate struct {
+	Id     int      `json:"id"`
+	Scopes []string `json:"scopes"`
+}
 
 // ExpectedError defines model for ExpectedError.
 type ExpectedError struct {
@@ -51,6 +79,9 @@ type Success struct {
 	Message string `json:"message"`
 }
 
+// APIKeyResponse defines model for APIKeyResponse.
+type APIKeyResponse = APIKey
+
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse = ExpectedError
 
@@ -59,6 +90,21 @@ type HealthCheckResponse = HealthCheck
 
 // SuccessResponse Operation was a success
 type SuccessResponse = Success
+
+// SuccessfulSigninResponse Operation was a success
+type SuccessfulSigninResponse = Success
+
+// SuccessfulSignoutResponse Operation was a success
+type SuccessfulSignoutResponse = Success
+
+// APIKeyInitBody defines model for APIKeyInitBody.
+type APIKeyInitBody = APIKeyInit
+
+// APIKeyRefBody defines model for APIKeyRefBody.
+type APIKeyRefBody = APIKeyRef
+
+// APIKeyUpdateBody defines model for APIKeyUpdateBody.
+type APIKeyUpdateBody = APIKeyUpdate
 
 // SigninDataBody Data used to sign in
 type SigninDataBody = SigninData
@@ -72,11 +118,37 @@ type GetCoveragePathParams struct {
 // GetCoveragePathParamsFormat defines parameters for GetCoveragePath.
 type GetCoveragePathParamsFormat string
 
-// PostSigninJSONRequestBody defines body for PostSignin for application/json ContentType.
-type PostSigninJSONRequestBody = SigninData
+// PostCoveragePathJSONBody defines parameters for PostCoveragePath.
+type PostCoveragePathJSONBody struct {
+	Cover string `json:"cover"`
+}
+
+// PostCoveragePathJSONRequestBody defines body for PostCoveragePath for application/json ContentType.
+type PostCoveragePathJSONRequestBody PostCoveragePathJSONBody
+
+// DeleteKeysJSONRequestBody defines body for DeleteKeys for application/json ContentType.
+type DeleteKeysJSONRequestBody = APIKeyRef
+
+// GetKeysJSONRequestBody defines body for GetKeys for application/json ContentType.
+type GetKeysJSONRequestBody = APIKeyRef
+
+// PostKeysJSONRequestBody defines body for PostKeys for application/json ContentType.
+type PostKeysJSONRequestBody = APIKeyInit
+
+// PutKeysJSONRequestBody defines body for PutKeys for application/json ContentType.
+type PutKeysJSONRequestBody = APIKeyUpdate
+
+// PostUsersSigninJSONRequestBody defines body for PostUsersSignin for application/json ContentType.
+type PostUsersSigninJSONRequestBody = SigninData
+
+// PostUsersSignupJSONRequestBody defines body for PostUsersSignup for application/json ContentType.
+type PostUsersSignupJSONRequestBody = SigninData
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+
+	// (DELETE /coverage/{path})
+	DeleteCoveragePath(w http.ResponseWriter, r *http.Request, path string)
 
 	// (GET /coverage/{path})
 	GetCoveragePath(w http.ResponseWriter, r *http.Request, path string, params GetCoveragePathParams)
@@ -87,13 +159,36 @@ type ServerInterface interface {
 	// (GET /health)
 	GetHealth(w http.ResponseWriter, r *http.Request)
 
-	// (POST /signin)
-	PostSignin(w http.ResponseWriter, r *http.Request)
+	// (DELETE /keys)
+	DeleteKeys(w http.ResponseWriter, r *http.Request)
+
+	// (GET /keys)
+	GetKeys(w http.ResponseWriter, r *http.Request)
+
+	// (POST /keys)
+	PostKeys(w http.ResponseWriter, r *http.Request)
+
+	// (PUT /keys)
+	PutKeys(w http.ResponseWriter, r *http.Request)
+
+	// (POST /users/signin)
+	PostUsersSignin(w http.ResponseWriter, r *http.Request)
+
+	// (POST /users/signout)
+	PostUsersSignout(w http.ResponseWriter, r *http.Request)
+
+	// (POST /users/signup)
+	PostUsersSignup(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// (DELETE /coverage/{path})
+func (_ Unimplemented) DeleteCoveragePath(w http.ResponseWriter, r *http.Request, path string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // (GET /coverage/{path})
 func (_ Unimplemented) GetCoveragePath(w http.ResponseWriter, r *http.Request, path string, params GetCoveragePathParams) {
@@ -110,8 +205,38 @@ func (_ Unimplemented) GetHealth(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// (POST /signin)
-func (_ Unimplemented) PostSignin(w http.ResponseWriter, r *http.Request) {
+// (DELETE /keys)
+func (_ Unimplemented) DeleteKeys(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (GET /keys)
+func (_ Unimplemented) GetKeys(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (POST /keys)
+func (_ Unimplemented) PostKeys(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (PUT /keys)
+func (_ Unimplemented) PutKeys(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (POST /users/signin)
+func (_ Unimplemented) PostUsersSignin(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (POST /users/signout)
+func (_ Unimplemented) PostUsersSignout(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (POST /users/signup)
+func (_ Unimplemented) PostUsersSignup(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -123,6 +248,34 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// DeleteCoveragePath operation middleware
+func (siw *ServerInterfaceWrapper) DeleteCoveragePath(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "path" -------------
+	var path string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "path", chi.URLParam(r, "path"), &path, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "path", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteCoveragePath(w, r, path)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
 
 // GetCoveragePath operation middleware
 func (siw *ServerInterfaceWrapper) GetCoveragePath(w http.ResponseWriter, r *http.Request) {
@@ -176,6 +329,8 @@ func (siw *ServerInterfaceWrapper) PostCoveragePath(w http.ResponseWriter, r *ht
 		return
 	}
 
+	ctx = context.WithValue(ctx, APIKeyAuthScopes, []string{})
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostCoveragePath(w, r, path)
 	}))
@@ -202,12 +357,112 @@ func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// PostSignin operation middleware
-func (siw *ServerInterfaceWrapper) PostSignin(w http.ResponseWriter, r *http.Request) {
+// DeleteKeys operation middleware
+func (siw *ServerInterfaceWrapper) DeleteKeys(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteKeys(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetKeys operation middleware
+func (siw *ServerInterfaceWrapper) GetKeys(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetKeys(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PostKeys operation middleware
+func (siw *ServerInterfaceWrapper) PostKeys(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostKeys(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PutKeys operation middleware
+func (siw *ServerInterfaceWrapper) PutKeys(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutKeys(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PostUsersSignin operation middleware
+func (siw *ServerInterfaceWrapper) PostUsersSignin(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostSignin(w, r)
+		siw.Handler.PostUsersSignin(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PostUsersSignout operation middleware
+func (siw *ServerInterfaceWrapper) PostUsersSignout(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostUsersSignout(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PostUsersSignup operation middleware
+func (siw *ServerInterfaceWrapper) PostUsersSignup(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostUsersSignup(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -331,6 +586,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/coverage/{path}", wrapper.DeleteCoveragePath)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/coverage/{path}", wrapper.GetCoveragePath)
 	})
 	r.Group(func(r chi.Router) {
@@ -340,7 +598,25 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/health", wrapper.GetHealth)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/signin", wrapper.PostSignin)
+		r.Delete(options.BaseURL+"/keys", wrapper.DeleteKeys)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/keys", wrapper.GetKeys)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/keys", wrapper.PostKeys)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/keys", wrapper.PutKeys)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/users/signin", wrapper.PostUsersSignin)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/users/signout", wrapper.PostUsersSignout)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/users/signup", wrapper.PostUsersSignup)
 	})
 
 	return r
@@ -349,24 +625,35 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9RXTW/jNhD9K8S0twqRkg2KQrdNdrFdoECDDdrLNgdGGkvctUguOXJiBP7vxZCUJVty",
-	"gga5NJfY/Jj3ZubNDP0Elems0ajJQ/kEDn/06OnK1ArDwq1qtNIfJMkrU295pTKaUBN/lNauVSVJGZ1/",
-	"80bzmq9a7CR/+tnhCkr4KR8h8rjr89Es7PgvA4feGu0j6pWsG/ySVo5AVScbzP2m+eWxWx8i0tYilODJ",
-	"Kd1AMFujr5yyTBFKeC8qU6OozAadbFDcM464/fsT7DL46JxxJ0Bf7+nHR4sVYR2sL3EKG6JD72WDzON3",
-	"lGtqr1usvr85m4ntJS5xW1S8L+qQnQxu+6pC79+cS7K7xCNtrfq1MBZdsC5k9V2bhzXWDXYMzteSLYY6",
-	"DHT5BNbxXUpC5sTz/0MgalFgSEAQhlkJXhm1mAE+ys6uEcrL4jIbFKY0YYOOozMkbmb6MK8TQwHUOvMN",
-	"KxL/9EXxrtKyw/AJRW3QC21I4KPyBNlM1FkoUuWwhvJrdGtkcbc/b+7Z/pGe5iw/65VxXQyw0cH7Noog",
-	"xcKj26jq0IHGmHrOLJs0izkQr4reYy3ICK8aLZSG7ChJVnr/YFw9v36TdhZMjLz21zPolP4DdUMtlL8t",
-	"MO09Og76HOivtPMskNtKXujk4wByXhQvpWqPmY1El/I11MWM2p/7UniQXkjh08HshNT3fC8m5JalO7pm",
-	"ToI8790o9AA/d4wvKL0yoVErCmDX3Ig/XIn3N5/FrcUKMtig89Hd4qw4K5insailVVDCu7DE8aM2uJoP",
-	"rTx/4rUdrzVI89h9Qeqd9kHSSzPArIQcihKyMQqfayjhE9J1On4jqQ0EnOyQ0Hkovx5jsSdqpTCi1eg5",
-	"RiLW2YGM/KYBDgqU8KNHt4UMoihhf3hspTWuZL+m/TXUfceBj9+cfJjEfMzRvI6oZVVPe9AQisMaV9T2",
-	"92eV6XInldS/XpzHYNf3A2cbY5Eop2+jJsj1mD0zne+Ohv5FUZwaGftz+eHLYJfBZXH58q3D0c5KJNlw",
-	"6mDIK9ztMrDGL0jnFmlJNzweOanTUM6Uc2P8f5LO/z09R4HO4KI4f8Wtt0vqLoM8DrQXW0Oae2oyEVfO",
-	"dCEX0tqlrhBHK7wmUkuvvKkPyXT0wIfBGibkskTjjBK9V7rhyeVE5bBGTUqu/aIq46xOiohP/u1p1pNf",
-	"BfnRT4Lda7w/flNOPecJ7Nlxft+h2wyV0rs1lNASWV/m+VNtOqn0LpdW5ZtznhzSKXm/jizi7mHfTPVx",
-	"FpN5/BBUXqjUscNdQa0ksTW9E8OYUtqT1BXyQY8kyPBYu9tTP07LNTeM67F8UynuV+btOeghvrtIUu/n",
-	"r7BkI8ljd7f7NwAA//9hewAYww0AAA==",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

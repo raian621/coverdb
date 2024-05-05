@@ -63,6 +63,16 @@ paths:
             type: string
           required: true
           example: github.com/raian621/coverdb
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cover:
+                  type: string
+                  example: "98.2"
+              required: ["cover"]
       responses:
         "201":
           $ref: "#/components/responses/SuccessResponse"
@@ -88,9 +98,6 @@ paths:
           $ref: "#/components/responses/SuccessResponse"
         "4XX":
           $ref: "#/components/responses/ErrorResponse"
-      
-      
-
 
   /health:
     get:

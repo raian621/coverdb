@@ -1,0 +1,386 @@
+openapi: "3.0.0"
+
+info:
+  title: CoverDB API
+  version: "0.0.0"
+
+servers:
+  - url: https://{domain}/api/v1
+    variables:
+      domain:
+        description: this is the domain that your CoverDB instance is set to
+        default: "coverdb.app"
+
+tags:
+  - name: Coverage
+    description: Code Coverage
+  - name: Health
+    description: Check the status of the service
+  - name: Users
+    description: Routes used to authenticate, deauthenticate, and manage users
+  - name: API Keys
+    description: Routes used to manage API keys for the service
+
+paths:
+  /coverage/{path}:
+    get:
+      tags:
+        - Coverage
+      description: Returns the code coverage badge of a project
+      parameters:
+        - name: format
+          description: Specifies the desired format
+          in: query
+          schema:
+            type: string
+            enum: ["svg", "raw"]
+            default: "svg"
+          example: svg
+        - in: path
+          name: path
+          description: Path to the project coverage
+          schema:
+            type: string
+          required: true
+          example: github.com/raian621/coverdb
+      responses:
+        "200":
+          $ref: "#/components/responses/BadgeResponse"
+        "404":
+          $ref: "#/components/responses/ErrorResponse"
+
+    post:
+      tags:
+        - Coverage
+      description: Sets the code coverage data for the project
+      security:
+        - APIKeyAuth: []
+      parameters:
+        - in: path
+          name: path
+          description: Path to the project coverage
+          schema:
+            type: string
+          required: true
+          example: github.com/raian621/coverdb
+      responses:
+        "201":
+          $ref: "#/components/responses/SuccessResponse"
+        "404":
+          $ref: "#/components/responses/ErrorResponse"
+
+    delete:
+      tags:
+        - Coverage
+      description: Delete coverage data for a project
+      security:
+        - CookieAuth: []
+      parameters:
+        - in: path
+          name: path
+          description: Path to the project coverage
+          schema:
+            type: string
+          required: true
+          example: github.com/raian621/coverdb
+      responses:
+        "201":
+          $ref: "#/components/responses/SuccessResponse"
+        "4XX":
+          $ref: "#/components/responses/ErrorResponse"
+      
+      
+
+
+  /health:
+    get:
+      tags:
+        - Health
+      description: Returns health information from the app
+      responses:
+        "200":
+          $ref: "#/components/responses/HealthCheckResponse"
+  
+  /keys:
+    get:
+      tags:
+        - API Keys
+      description: Fetch a pre-exisiting API key
+      security:
+        - CookieAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/APIKeyRefBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/APIKeyResponse"
+        "4XX":
+          $ref: "#/components/responses/ErrorResponse"
+
+    post:
+      tags:
+        - API Keys
+      description: Create an API key
+      security:
+        - CookieAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/APIKeyInitBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/SuccessResponse"
+        "4XX":
+          $ref: "#/components/responses/ErrorResponse"
+
+    put:
+      tags:
+        - API Keys
+      description: Update an API key
+      security:
+        - CookieAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/APIKeyUpdateBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/SuccessResponse"
+        "4XX":
+          $ref: "#/components/responses/ErrorResponse"
+
+    delete:
+      tags:
+        - API Keys
+      description: Delete an API key
+      security:
+      - CookieAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/APIKeyRefBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/SuccessResponse"
+        "4XX":
+          $ref: "#/components/responses/ErrorResponse"
+
+  /users/signin:
+    post:
+      tags:
+        - Users
+      description: Sign in using user credentials
+      requestBody:
+        $ref: "#/components/requestBodies/SigninDataBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/SuccessfulSigninResponse"
+        "400":
+          $ref: "#/components/responses/ErrorResponse"
+
+  /users/signout:
+    post:
+      tags:
+        - Users
+      description: Sign out, destroying the user session
+      security:
+        - CookieAuth: []
+      responses:
+        "200":
+          $ref: "#/components/responses/SuccessfulSignoutResponse"
+        "400":
+          $ref: "#/components/responses/ErrorResponse"
+
+  /users/signup:
+    post:
+      tags:
+        - Users
+      description: Register a user in the database
+      requestBody:
+        $ref: "#/components/requestBodies/SigninDataBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/SuccessfulSigninResponse"
+        "409":
+          $ref: "#/components/responses/ErrorResponse"
+
+components:
+  schemas:
+    APIKey:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 123
+        key:
+          type: string
+          example: this is totally an API key
+      required: ["id", "key"]
+
+    APIKeyRef:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 123
+      required: ["id"]
+
+    APIKeyInit:
+      type: object
+      properties:
+        scopes:
+          type: array
+          items:
+            type: string
+          example: ["github.com/raian621/*", "github.com/coverdb/coverdb"]
+      required: ["scopes"]
+
+    APIKeyUpdate:
+      type: object
+      properties:
+        id:
+          type: integer
+        scopes:
+          type: array
+          items:
+            type: string
+          example: ["github.com/raian621/*", "github.com/coverdb/coverdb"]
+      required: ["id", "scopes"]
+
+    ExpectedError:
+      type: object
+      properties:
+        message:
+          description: Error message
+          type: string
+          example: "the project <name> does not exist"
+        code:
+          description: the error code of the responses
+          type: integer
+          example: 404
+      required: ["code", "message"]
+
+    HealthCheck:
+      description: Information on the health of the service
+      type: string
+      example: good
+
+    SigninData:
+      description: Data used to sign in
+      type: object
+      properties:
+        username:
+          description: Username used to sign in
+          type: string
+          maxLength: 100
+          example: ryan
+        password:
+          description: Password used to sign in
+          type: string
+          minLength: 8
+          example: password
+      required: ["username", "password"]
+
+    Success:
+      description: Operation was a success
+      type: object
+      properties:
+        message:
+          type: string
+          example: "operation was a success"
+        code:
+          type: integer
+          example: 200
+      required: ["message", "code"]
+
+  requestBodies:
+    APIKeyRefBody:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/APIKeyRef"
+
+    APIKeyInitBody:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/APIKeyInit"
+    
+    APIKeyUpdateBody:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/APIKeyUpdate"
+
+    SigninDataBody:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/SigninData"
+
+  responses:
+    APIKeyResponse:
+      description: An API key for the service
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/APIKey"
+
+
+    BadgeResponse:
+      description: A code coverage badge SVG
+      content:
+        image/svg+xml:
+          schema:
+            type: string
+
+    ErrorResponse:
+      description: Error message
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ExpectedError"
+
+    HealthCheckResponse:
+      description: Health check data
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/HealthCheck"
+
+    SuccessResponse:
+      description: Successful operation acknowledgement
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Success"
+
+    SuccessfulSigninResponse:
+      description: Successful sign in acknowledgement
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Success"
+      headers:
+        Set-Cookie:
+          description: Store the session ID as a cookie
+          schema:
+            type: string
+            example: sessionid=asdhfjkashdfhksdf; Path=/; HttpOnly
+
+    SuccessfulSignoutResponse:
+      description: Successful sign out acknowledgement
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Success"
+      headers:
+        Set-Cookie:
+          description: Delete the session ID cookie
+          schema:
+            type: string
+            example: sessionid=deleted; Path=/; HttpOnly; expires=Thu 01 Jan 1970 00:00:00 GMT
+
+  securitySchemes:
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+
+    APIKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-KEY

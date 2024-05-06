@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/raian621/coverdb/api"
+	"github.com/raian621/coverdb/database"
 	// oapi_middleware "github.com/oapi-codegen/nethttp-middleware"
 )
 
@@ -19,8 +20,32 @@ func main() {
 	certfile := flag.String("certfile", "coverdb.crt", "x.509 certificate file")
 	keyfile := flag.String("keyfile", "coverdb.key", "x.509 private key file")
 	https := flag.Bool("https", false, "use https")
+	adminUser := flag.String("admin", "admin", "initial admin username")
+	password := flag.String("password", "password", "initial admin password")
 	flag.Parse()
 
+	err := database.CreateDB("database/coverdb.db", "database/schema.sql")
+	if err != nil {
+		panic(err)
+	}
+	if err := database.CreateAdminUser(*adminUser, *password); err != nil {
+		panic(err)
+	}
+	s := CreateServer(*host, *port)
+
+	if *https {
+		log.Printf("listening on https://%s:%s\n", *host, *port)
+		if err := EnsureTLSFiles(*certfile, *keyfile); err != nil {
+			panic(err)
+		}
+		log.Fatal(s.ListenAndServeTLS(*certfile, *keyfile))
+	} else {
+		log.Printf("listening on http://%s:%s\n", *host, *port)
+		log.Fatal(s.ListenAndServe())
+	}
+}
+
+func CreateServer(host, port string) *http.Server {
 	swagger, err := api.GetSwagger()
 	if err != nil {
 		panic(err)
@@ -46,19 +71,8 @@ func main() {
 	r.Handle("/*", http.FileServer(http.Dir("client/dist")))
 	api.HandlerFromMux(server, apiRouter)
 
-	s := &http.Server{
+	return &http.Server{
 		Handler: r,
-		Addr:    net.JoinHostPort(*host, *port),
-	}
-	if *https {
-		log.Printf("listening on https://%s:%s\n", *host, *port)
-		err = EnsureTLSFiles(*certfile, *keyfile)
-		if err != nil {
-			panic(err)
-		}
-		log.Fatal(s.ListenAndServeTLS(*certfile, *keyfile))
-	} else {
-		log.Printf("listening on http://%s:%s\n", *host, *port)
-		log.Fatal(s.ListenAndServe())
+		Addr:    net.JoinHostPort(host, port),
 	}
 }

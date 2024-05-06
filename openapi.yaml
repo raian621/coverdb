@@ -5,11 +5,20 @@ info:
   version: "0.0.0"
 
 servers:
-  - url: https://{domain}/api/v1
+  - url: https://coverdb.app/api/v1
+    description: Production server
+  - url: "{protocol}://localhost:{port}/{path}"
+    description: Development server
     variables:
-      domain:
-        description: this is the domain that your CoverDB instance is set to
-        default: "coverdb.app"
+      port:
+        default: "8000"
+      protocol:
+        enum:
+          - "http"
+          - "https"
+        default: "https"
+      path:
+        default: "api/v1"
 
 tags:
   - name: Coverage
@@ -107,7 +116,7 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/HealthCheckResponse"
-  
+
   /keys:
     get:
       tags:
@@ -115,8 +124,13 @@ paths:
       description: Fetch a pre-exisiting API key
       security:
         - CookieAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/APIKeyRefBody"
+      parameters:
+        - in: query
+          name: id
+          schema:
+            type: integer
+            example: 1234
+          required: true
       responses:
         "200":
           $ref: "#/components/responses/APIKeyResponse"
@@ -157,8 +171,13 @@ paths:
       description: Delete an API key
       security:
       - CookieAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/APIKeyRefBody"
+      parameters:
+        - in: query
+          name: id
+          schema:
+            type: integer
+            example: 1234
+          required: true
       responses:
         "200":
           $ref: "#/components/responses/SuccessResponse"
@@ -216,14 +235,6 @@ components:
           type: string
           example: this is totally an API key
       required: ["id", "key"]
-
-    APIKeyRef:
-      type: object
-      properties:
-        id:
-          type: integer
-          example: 123
-      required: ["id"]
 
     APIKeyInit:
       type: object
@@ -294,12 +305,6 @@ components:
       required: ["message", "code"]
 
   requestBodies:
-    APIKeyRefBody:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/APIKeyRef"
-
     APIKeyInitBody:
       content:
         application/json:

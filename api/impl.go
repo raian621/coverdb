@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/raian621/coverdb/database"
@@ -26,11 +27,11 @@ func (s Server) DeleteCoveragePath(w http.ResponseWriter, r *http.Request, path 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-func (s Server) DeleteKeys(w http.ResponseWriter, r *http.Request) {
+func (s Server) DeleteKeys(w http.ResponseWriter, r *http.Request, params DeleteKeysParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-func (s Server) GetKeys(w http.ResponseWriter, r *http.Request) {
+func (s Server) GetKeys(w http.ResponseWriter, r *http.Request, params GetKeysParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -51,14 +52,35 @@ func (s Server) PostUsersSignout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) PostUsersSignup(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	var userSigninData SigninDataBody
+
 	if err := json.NewDecoder(r.Body).Decode(&userSigninData); err != nil {
-		w.Header().Set("Content-Type", "application/json")
 		errorMsg := ErrorResponse{
 			Message: "error in input data",
 			Code:    http.StatusUnprocessableEntity,
 		}
-		json.NewEncoder(w).Encode(errorMsg)
+		if err := json.NewEncoder(w).Encode(errorMsg); err != nil {
+			log.Printf("unexpected error: %v\n", err)
+		}
+	}
+
+	if taken, err := database.UsernameTaken(userSigninData.Username); err != nil {
+		errorMsg := ErrorResponse{
+			Message: "error in input data",
+			Code:    http.StatusUnprocessableEntity,
+		}
+		if err := json.NewEncoder(w).Encode(errorMsg); err != nil {
+			log.Printf("unexpected error: %v\n", err)
+		}
+	} else if taken {
+		errorMsg := ErrorResponse{
+			Message: "username already exists",
+			Code:    http.StatusConflict,
+		}
+		if err := json.NewEncoder(w).Encode(errorMsg); err != nil {
+			log.Printf("unexpected error: %v\n", err)
+		}
 	}
 
 	err := database.CreateUser(userSigninData.Username, userSigninData.Password)
@@ -68,6 +90,17 @@ func (s Server) PostUsersSignup(w http.ResponseWriter, r *http.Request) {
 			Message: "username taken",
 			Code:    http.StatusConflict,
 		}
-		json.NewEncoder(w).Encode(errorMsg)
+		if err := json.NewEncoder(w).Encode(errorMsg); err != nil {
+			log.Printf("unexpected error: %v\n", err)
+		}
+	}
+
+	response := SuccessfulSigninResponse{
+		Message: "account successfully created",
+		Code:    http.StatusCreated,
+	}
+	w.WriteHeader(response.Code)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("unexpected error: %v\n", err)
 	}
 }

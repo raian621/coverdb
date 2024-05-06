@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS user_sessions (
   id        INTEGER     PRIMARY KEY,
   sessionid VARCHAR(40) NOT NULL UNIQUE,
   user_id   INTEGER     NOT NULL,
+  expires   INTEGER     NOT NULL,
 
   FOREIGN KEY (user_id) REFERENCES users(id)
 );

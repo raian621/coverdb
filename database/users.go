@@ -153,3 +153,12 @@ func SignInUser(username, password string) (string, error) {
 
 	return sessionId, nil
 }
+
+func SignOutUser(sessionId string) error {
+	_, err := db.Exec("DELETE FROM user_sessions WHERE sessionid=$1", sessionId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

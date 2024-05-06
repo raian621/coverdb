@@ -148,3 +148,49 @@ func TestSignInUser(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestSignOutUser(t *testing.T) {
+	err := database.CreateDB(DB_PATH, SCHEMA_PATH)
+
+	username := "ryan"
+	password := "password"
+
+	if err := database.TryCreateUser(username, password); err != nil {
+		t.Error(err)
+	}
+	defer func() {
+		if _, err = database.GetDB().Exec(
+			"DELETE FROM users WHERE username=$1",
+			username,
+		); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	db := database.GetDB()
+	sessionId, err := database.SignInUser(username, password)
+	if err != nil {
+		t.Error(err)
+	}
+	defer func() {
+		if _, err = db.Exec(
+			"DELETE FROM user_sessions WHERE sessionid=$1",
+			sessionId,
+		); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	if err := database.SignOutUser(sessionId); err != nil {
+		t.Error(err)
+	}
+
+	row := db.QueryRow("SELECT COUNT() FROM user_sessions WHERE sessionid=$1", sessionId)
+	var count int
+	if err := row.Scan(&count); err != nil {
+		t.Error(err)
+	}
+	if count != 0 {
+		t.Errorf("expected '%d', got '%d' sessions with session ID", 0, count)
+	}
+}

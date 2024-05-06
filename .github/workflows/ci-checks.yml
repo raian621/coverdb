@@ -21,8 +21,8 @@ jobs:
         with:
          version: v1.54
 
-      # - name: run go tests with coverage
-      #   run: go test -v -cover ./...
+      - name: run go tests with coverage
+        run: go test -v -cover ./...
 
       # - name: update coverage report
       #   uses: ncruces/go-coverage-report@v0

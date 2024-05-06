@@ -7,11 +7,6 @@ import (
 	"github.com/raian621/coverdb/database"
 )
 
-var (
-	dbPath     string = "./coverdb.db"
-	schemaPath string = "./schema.sql"
-)
-
 type UserRegisterTest struct {
 	username string
 	password string
@@ -19,7 +14,7 @@ type UserRegisterTest struct {
 }
 
 func TestPostUserSignup(t *testing.T) {
-	err := database.CreateDB(dbPath, schemaPath)
+	err := database.CreateDB(DB_PATH, SCHEMA_PATH)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,6 +92,10 @@ func TestPostUserSignup(t *testing.T) {
 }
 
 func TestSignInUser(t *testing.T) {
+	err := database.CreateDB(DB_PATH, SCHEMA_PATH)
+	if err != nil {
+		t.Fatal(err)
+	}
 	// username := "ryan"
 	// password := "password"
 

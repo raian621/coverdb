@@ -14,7 +14,7 @@ jobs:
 
       - uses: actions/setup-go@v4
         with:
-          go-version: 1.22
+          go-version: 1.21
 
       - name: lint with golangci-lint
         uses: golangci/golangci-lint-action@v4
@@ -23,13 +23,5 @@ jobs:
 
       - name: run go tests with coverage
         run: go test -v -cover ./...
-
-      # - name: update coverage report
-      #   uses: ncruces/go-coverage-report@v0
-      #   with:
-      #     report: true
-      #     chart: true
-      #     amend: true
-      #   if: |
-      #     github.event_name == 'push'
-      #   continue-on-error: true
+      
+      # upload coverage report using the pseudo-completed service eventually

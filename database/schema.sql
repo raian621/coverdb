@@ -1,3 +1,5 @@
+PRAGMA foreign_keys = ON;
+
 CREATE TABLE IF NOT EXISTS users (
   id       INTEGER      PRIMARY KEY,
   username VARCHAR(100) NOT NULL UNIQUE,
@@ -13,7 +15,7 @@ CREATE TABLE IF NOT EXISTS api_key_scopes (
   id         INTEGER PRIMARY KEY,
   api_key_id INTEGER NOT NULL,
 
-  FOREIGN KEY (api_key_id) REFERENCES api_keys(id)
+  FOREIGN KEY (api_key_id) REFERENCES api_keys(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS coverage (
@@ -28,5 +30,5 @@ CREATE TABLE IF NOT EXISTS user_sessions (
   user_id   INTEGER     NOT NULL,
   expires   INTEGER     NOT NULL,
 
-  FOREIGN KEY (user_id) REFERENCES users(id)
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

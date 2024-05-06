@@ -69,8 +69,7 @@ func SignInUser(username, password string) (string, error) {
 	var passhash string
 	row := db.QueryRow(
 		"SELECT id, passhash FROM users WHERE username=$1",
-		userId,
-		passhash,
+		username,
 	)
 	if err := row.Scan(&userId, &passhash); err != nil {
 		return "", ErrInvalidUsername
@@ -117,7 +116,8 @@ func SignInUser(username, password string) (string, error) {
 	var sessionId string
 	uniqueSessionId := false
 	for i := 0; i < 3; i++ {
-		sessionId, err := genSessionId()
+		var err error
+		sessionId, err = genSessionId()
 		if err != nil {
 			return "", err
 		}
@@ -151,5 +151,5 @@ func SignInUser(username, password string) (string, error) {
 		return "", err
 	}
 
-	return "", nil
+	return sessionId, nil
 }

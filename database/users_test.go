@@ -96,24 +96,55 @@ func TestSignInUser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// username := "ryan"
-	// password := "password"
+	username := "ryan"
+	password := "password"
 
-	// if err := database.TryCreateUser(username, password); err != nil {
-	// 	t.Error(err)
-	// }
+	if err := database.TryCreateUser(username, password); err != nil {
+		t.Error(err)
+	}
 
-	// db := database.GetDB()
-	// sessionId, err := database.SignInUser(username, password)
-	// if err != nil {
-	// 	t.Error(err)
-	// } else {
-	// 	t.Log(sessionId)
-	// 	_, err = db.Exec("DELETE FROM user_sessions WHERE sessionid=$1", username)
-	// }
+	db := database.GetDB()
+	sessionId, err := database.SignInUser(username, password)
+	if err != nil {
+		t.Error(err)
+	} else {
+		_, err = db.Exec("DELETE FROM user_sessions WHERE sessionid=$1", username)
+		if err != nil {
+			t.Error(err)
+		}
+	}
 
-	// _, err = db.Exec("DELETE FROM users WHERE username=$1", username)
-	// if err != nil {
-	// 	t.Error(err)
-	// }
+	row := db.QueryRow("SELECT username, user_sessions.sessionid FROM user_sessions INNER JOIN users ON user_sessions.user_id=users.id")
+	var dbUsername, dbSessionId string
+	if err := row.Scan(&dbUsername, &dbSessionId); err != nil {
+		t.Error(err)
+	}
+
+	if username != dbUsername {
+		t.Errorf("wanted '%s', got '%s' username", username, dbUsername)
+	}
+	if sessionId != dbSessionId {
+		t.Errorf("wanted '%s', got '%s' session id", sessionId, dbSessionId)
+	}
+	_, err = db.Exec("DELETE FROM user_sessions WHERE sessionid=$1", username)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// test incorrect username error
+	_, err = database.SignInUser("not the correct user", password)
+	if !errors.Is(err, database.ErrInvalidUsername) {
+		t.Errorf("wanted '%v', got '%v' error", database.ErrInvalidUsername, err)
+	}
+
+	// test incorrect password error
+	_, err = database.SignInUser(username, "not the correct password")
+	if !errors.Is(err, database.ErrIncorrectPassword) {
+		t.Errorf("wanted '%v', got '%v' error", database.ErrIncorrectPassword, err)
+	}
+
+	_, err = db.Exec("DELETE FROM users WHERE username=$1", username)
+	if err != nil {
+		t.Error(err)
+	}
 }
